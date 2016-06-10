@@ -1,0 +1,7 @@
+clouds:
+  beebop:
+    auth:
+        auth_url: https://cloud.beebop.sh:5000/v2.0
+        username: user
+        password: passsword
+        project_name: mosorio_project
