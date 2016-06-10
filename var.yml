@@ -1,0 +1,19 @@
+---
+instance_prefix: "forus"
+instance_names:
+  - "{{ instance_prefix }}-backend1"
+  - "{{ instance_prefix }}-backend2"
+image_id: "32675454-8b62-4ac2-8e92-3387d4a7119b"
+security_groups_description: Rules for testing
+security_groups: "{{ instance_prefix }}_ursula"
+security_group_rules:
+  - { proto: 'tcp', port: 22, cidr: '0.0.0.0/0' }     # SSH (Ansible)
+  - { proto: 'tcp', port: 80, cidr: '0.0.0.0/0' }     # HTTPS redirect
+  - { proto: 'icmp', port: -1, cidr: '0.0.0.0/0' }
+  - { ethertype: 'IPv4', group: "{{ security_group.id }}" }
+  - { ethertype: 'IPv6', group: "{{ security_group.id }}" }
+security_groups_cleanup: True
+flavor: "beebop.small"
+keypair_path: "id_rsa.pub"
+keypair_name: "ansible"
+network_name: "mosorio_net"

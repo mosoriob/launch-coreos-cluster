@@ -1,0 +1,82 @@
+---
+- name: provision test instances
+  hosts: localhost
+  vars_files:
+  - var.yml
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python"
+
+  tasks:
+    - include: keypair.yml
+    
+    - name: create the security group
+      os_security_group:
+        cloud: beebop
+        name: "{{ security_groups }}"
+        description: "{{ instance_prefix }} {{ security_groups_description }}"
+        state: present
+      register: security_group
+
+    - name: create security group rules
+      os_security_group_rule:
+        cloud: beebop
+        security_group: "{{ security_groups }}"
+        protocol: "{{ item.proto | default(omit) }}"
+        port_range_min: "{{ item.port | default(omit) }}"
+        port_range_max: "{{ item.port | default(omit) }}"
+        remote_ip_prefix: "{{ item.cidr | default(omit) }}"
+        remote_group: "{{ item.group | default(omit) }}"
+        ethertype: "{{ item.ethertype | default(omit) }}"
+        state: present
+      with_items: "{{ security_group_rules }}"
+
+    - name: create instances
+      os_server:
+        cloud: beebop
+        name: "{{ item }}"
+        image: "{{ image_id }}"
+        key_name: ansible
+        wait: yes
+        timeout: 200
+        flavor: "{{ flavor }}"
+        nics:
+          - net-name: "mosorio_net"
+        auto_ip: false
+        boot_from_volume: True
+        volume_size: 10
+
+      with_items: "{{ instance_names }}"
+      async: 200
+      poll: 0
+      register: instances
+
+    - name: wait for instances to boot
+      async_status: jid={{ item.ansible_job_id }}
+      with_items: '{{instances.results}}'
+      register: booted_instances
+      until: booted_instances.finished
+      retries: 20
+
+    - name: verify port 22 is open
+      wait_for:
+        port: 22
+        delay: 5
+        timeout: 600
+        host: "{{ item.openstack.private_v4 }}"
+      with_items: '{{booted_instances.results}}'
+
+    - name: Add CentOS Instance to Inventory
+      add_host:
+          name: item
+          ansible_host: "{{ item.openstack.private_v4}}"
+          ansible_user: beebop
+          ansible_become: true
+          groups: webservers
+      with_items: "{{booted_instances.results}}"
+
+- hosts: webservers
+  remote_user: beebop
+  sudo: yes
+  tasks:
+      - name: enable EPEL repo
+        yum: name=epel-release state=latest
