@@ -1,4 +1,7 @@
 ---
+- hosts: webservers
+  remote_user: root
+
 - name: provision test instances
   hosts: localhost
   vars_files:
@@ -8,7 +11,7 @@
 
   tasks:
     - include: keypair.yml
-    
+
     - name: create the security group
       os_security_group:
         cloud: beebop
@@ -60,9 +63,11 @@
     - name: verify port 22 is open
       wait_for:
         port: 22
-        delay: 5
-        timeout: 600
+        delay: 2
+        timeout: 60
         host: "{{ item.openstack.private_v4 }}"
+
+      when: item.openstack.public_v4 is defined
       with_items: '{{booted_instances.results}}'
 
     - name: Add CentOS Instance to Inventory
@@ -76,7 +81,6 @@
 
 - hosts: webservers
   remote_user: beebop
-  sudo: yes
   tasks:
       - name: enable EPEL repo
         yum: name=epel-release state=latest
