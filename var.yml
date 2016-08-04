@@ -1,9 +1,11 @@
 ---
 instance_prefix: "mosorio"
 instance_names:
-  - "{{ instance_prefix }}-test1"
-  - "{{ instance_prefix }}-test2"
-image_id: "32675454-8b62-4ac2-8e92-3387d4a7119b"
+  - "{{ instance_prefix }}-1"
+  - "{{ instance_prefix }}-2"
+  - "{{ instance_prefix }}-3"
+
+image_id: "3cfcf54d-031b-4bd7-8f25-2b2c40430195"
 security_groups_description: Rules for testing
 security_groups: "{{ instance_prefix }}_testing"
 security_group_rules:

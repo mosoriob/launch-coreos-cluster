@@ -10,7 +10,25 @@
     ansible_python_interpreter: "/usr/bin/env python"
 
   tasks:
+
+    - name: create volumes
+      os_volume:
+        state: present
+        size: 20
+        display_name: "{{ item }}"    
+        cloud: beebop
+      register: '{{ item }}_volume'
+      with_items: "{{ instance_names }}"
+
+
     - include: keypair.yml
+
+    - name: Get bootstrap token for etcd
+      command: curl -w "\n" https://discovery.etcd.io/new
+      register: token
+    - debug: msg='Etcd token is {{ token.stdout }}'
+
+
 
     - name: create the security group
       os_security_group:
@@ -32,6 +50,8 @@
         ethertype: "{{ item.ethertype | default(omit) }}"
         state: present
       with_items: "{{ security_group_rules }}"
+ 
+
 
     - name: create instances
       os_server:
@@ -47,6 +67,48 @@
         auto_ip: false
         boot_from_volume: True
         volume_size: 10
+#        volumes:
+#          - "{{ item }}"
+
+        userdata: |
+          #cloud-config
+          coreos:
+            etcd2:
+              name: {{ item }}
+              discovery: {{token.stdout}}
+              advertise-client-urls: http://$private_ipv4:2379,http://$private_ipv4:4001
+              initial-advertise-peer-urls: http://$private_ipv4:2380
+              listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+              listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
+            units:
+              - name: format-ebs.service
+                command: start
+                content: |
+                  [Unit]
+                  Description=Formats the EBS volume attached
+                  After=dev-sdb.device_name
+                  Requires=dev-sdb.device
+                  [Service]
+                  Type=oneshot
+                  RemainAfterExit=yes
+                  ExecStart=/usr/sbin/wipefs -f /dev/sdb
+                  ExecStart=/usr/sbin/mkfs.btrfs -f /dev/sdb
+              - name: var-lib-docker.mount
+                command: start
+                content: |
+                  [Unit]
+                  Description=Mount EBS to /var/lib/docker
+                  Requires=format-ebs.service
+                  After=format-ebs.service
+                  Before=docker.service
+                  [Mount]
+                  What=/dev/sdb
+                  Where=/var/lib/docker
+                  Type=btrfs
+              - name: etcd2.service
+                command: start
+              - name: fleet.service
+                command: start
 
       with_items: "{{ instance_names }}"
       async: 200
@@ -60,27 +122,27 @@
       until: booted_instances.finished
       retries: 20
 
-    - name: verify port 22 is open
-      wait_for:
-        port: 22
-        delay: 2
-        timeout: 60
-        host: "{{ item.openstack.private_v4 }}"
+#     - name: verify port 22 is open
+#       wait_for:
+#         port: 22
+#         delay: 2
+#         timeout: 60
+#         host: "{{ item.openstack.private_v4 }}"
 
-      when: item.openstack.public_v4 is defined
-      with_items: '{{booted_instances.results}}'
+#       when: item.openstack.public_v4 is defined
+#       with_items: '{{booted_instances.results}}'
 
-    - name: Add CentOS Instance to Inventory
-      add_host:
-          name: item
-          ansible_host: "{{ item.openstack.private_v4}}"
-          ansible_user: beebop
-          ansible_become: true
-          groups: webservers
-      with_items: "{{booted_instances.results}}"
+#     - name: Add CentOS Instance to Inventory
+#       add_host:
+#           name: item
+#           ansible_host: "{{ item.openstack.private_v4}}"
+#           ansible_user: beebop
+#           ansible_become: true
+#           groups: webservers
+#       with_items: "{{booted_instances.results}}"
 
-- hosts: webservers
-  remote_user: beebop
-  tasks:
-      - name: enable EPEL repo
-        yum: name=epel-release state=latest
+# - hosts: webservers
+#   remote_user: beebop
+#   tasks:
+#       - name: enable EPEL repo
+#         yum: name=epel-release state=latest
