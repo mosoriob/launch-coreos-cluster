@@ -1,11 +1,11 @@
 ---
-instance_prefix: "mosorio"
+instance_prefix: "rancher"
 instance_names:
   - "{{ instance_prefix }}-1"
   - "{{ instance_prefix }}-2"
   - "{{ instance_prefix }}-3"
 
-image_id: "3cfcf54d-031b-4bd7-8f25-2b2c40430195"
+image_id: "1c72972c-36fa-446d-9207-34758eca651c"
 security_groups_description: Rules for testing
 security_groups: "{{ instance_prefix }}_testing"
 security_group_rules:
