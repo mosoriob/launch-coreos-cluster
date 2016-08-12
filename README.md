@@ -7,5 +7,3 @@
 - Set the variables (var.yml).
 - Run the playbook:
   `ansible-playbook create.yml`
-  
-Note: The verification of the ssh port uses a private network
