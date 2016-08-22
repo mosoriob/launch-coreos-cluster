@@ -15,7 +15,7 @@ security_group_rules:
   - { ethertype: 'IPv4', group: "{{ security_group.id }}" }
   - { ethertype: 'IPv6', group: "{{ security_group.id }}" }
 security_groups_cleanup: True
-flavor: "beebop.small"
+flavor: "beebop.medium"
 keypair_path: "id_rsa.pub"
 keypair_name: "ansible"
 network_name: "mosorio_net"
