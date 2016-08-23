@@ -114,7 +114,7 @@
                   - name: "20-mirror-registry.conf"
                     content: |
                       [Service]
-                      Environment=DOCKER_OPTS='--registry-mirror=https://registry.beebop.cloud --add-registry=--registry-mirror=https://registry.beebop.cloud'
+                      Environment=DOCKER_OPTS='--registry-mirror=https://registry.beebop.cloud --add-registry=https://registry.beebop.cloud'
               - name: docker.service
                 command: start
       with_items: "{{ instance_names }}"
